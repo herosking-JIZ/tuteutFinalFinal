@@ -159,8 +159,16 @@ Imagine une pizza coupée en 4 parts égales. Si tu manges 3 parts, tu as mangé
 
   // Scroll automatique du chat
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [chatMessages]);
+  if (currentView === 'chat' && chatMessages.length === 0) {
+    setChatMessages([
+      {
+        role: 'assistant',
+        content: " Salut ! Je suis ton tuteur IA. Je peux t'aider à comprendre tes cours, résoudre des exercices, ou expliquer des concepts difficiles. Tu peux aussi m'envoyer des photos de tes devoirs ou des PDFs de tes cours ! Comment puis-je t'aider aujourd'hui ?",
+        timestamp: new Date()
+      }
+    ]);
+  }
+  }, [currentView, chatMessages.length]);
 
   // Fonctions du Chat IA
   const handleFileSelect = (e) => {
