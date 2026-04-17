@@ -1,7 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { BookOpen, Brain, Trophy, TrendingUp, CheckCircle, XCircle, BarChart3, Star, MessageCircle, Send, Paperclip, X, FileText, Image, Loader, Bot, User, Home } from 'lucide-react';
+import { BookOpen, Brain, Trophy, TrendingUp, CheckCircle, XCircle, BarChart3, Star, MessageCircle, Send, X, FileText, Image, Loader, Bot, User, Home, LogOut } from 'lucide-react';
+import chatService from '../services/chatService';
+import { useAuth } from '../context/AuthContext';
 
 const TuteurIntelligent = () => {
+  const { logout, user } = useAuth();
   const [currentView, setCurrentView] = useState('home');
   const [selectedSubject, setSelectedSubject] = useState(null);
   const [selectedLevel, setSelectedLevel] = useState(null);
@@ -144,31 +147,21 @@ Imagine une pizza coupée en 4 parts égales. Si tu manges 3 parts, tu as mangé
     }
   };
 
-  // Initialiser le chat avec message d'accueil
+  // Message d'accueil chat (une seule fois)
   useEffect(() => {
     if (currentView === 'chat' && chatMessages.length === 0) {
-      setChatMessages([
-        {
-          role: 'assistant',
-          content: " Salut ! Je suis ton tuteur IA. Je peux t'aider à comprendre tes cours, résoudre des exercices, ou expliquer des concepts difficiles. Tu peux aussi m'envoyer des photos de tes devoirs ou des PDFs de tes cours ! Comment puis-je t'aider aujourd'hui ?",
-          timestamp: new Date()
-        }
-      ]);
+      setChatMessages([{
+        role: 'assistant',
+        content: "Salut ! Je suis ton tuteur IA. Je peux t'aider à comprendre tes cours, résoudre des exercices, ou expliquer des concepts difficiles. Comment puis-je t'aider aujourd'hui ?",
+        timestamp: new Date()
+      }]);
     }
   }, [currentView]);
 
-  // Scroll automatique du chat
+  // Scroll automatique vers le dernier message
   useEffect(() => {
-  if (currentView === 'chat' && chatMessages.length === 0) {
-    setChatMessages([
-      {
-        role: 'assistant',
-        content: " Salut ! Je suis ton tuteur IA. Je peux t'aider à comprendre tes cours, résoudre des exercices, ou expliquer des concepts difficiles. Tu peux aussi m'envoyer des photos de tes devoirs ou des PDFs de tes cours ! Comment puis-je t'aider aujourd'hui ?",
-        timestamp: new Date()
-      }
-    ]);
-  }
-  }, [currentView, chatMessages.length]);
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chatMessages]);
 
   // Fonctions du Chat IA
   const handleFileSelect = (e) => {
@@ -196,53 +189,33 @@ Imagine une pizza coupée en 4 parts égales. Si tu manges 3 parts, tu as mangé
 
   const handleChatSubmit = async (e) => {
     e.preventDefault();
-    if (!chatInput.trim() && selectedFiles.length === 0) return;
+    if (!chatInput.trim()) return;
 
-    const userMessage = {
+    const messageTexte = chatInput;
+    setChatMessages(prev => [...prev, {
       role: 'user',
-      content: chatInput,
-      files: selectedFiles.map(f => ({ name: f.name, type: f.type })),
+      content: messageTexte,
       timestamp: new Date()
-    };
-    
-    setChatMessages(prev => [...prev, userMessage]);
+    }]);
     setChatInput('');
     setIsChatLoading(true);
 
     try {
-      const formData = new FormData();
-      formData.append('prompt', chatInput);
-      selectedFiles.forEach(file => formData.append('files', file));
-      formData.append('conversation_history', JSON.stringify(
-        chatMessages.map(m => ({ role: m.role, content: m.content }))
-      ));
-
-      const response = await fetch('http://localhost:8000/api/chat/', {
-        method: 'POST',
-        body: formData,
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setChatMessages(prev => [...prev, {
-          role: 'assistant',
-          content: data.response,
-          timestamp: new Date()
-        }]);
-      } else {
-        throw new Error(data.error || 'Erreur serveur');
-      }
+      const data = await chatService.sendMessage(messageTexte);
+      setChatMessages(prev => [...prev, {
+        role: 'assistant',
+        content: data.response,
+        timestamp: new Date()
+      }]);
     } catch (error) {
       setChatMessages(prev => [...prev, {
         role: 'assistant',
-        content: `❌ Erreur : ${error.message}. Vérifie que le backend est lancé sur http://localhost:8000`,
+        content: `❌ ${error.message}`,
         timestamp: new Date(),
         isError: true
       }]);
     } finally {
       setIsChatLoading(false);
-      setSelectedFiles([]);
     }
   };
 
@@ -273,7 +246,7 @@ Imagine une pizza coupée en 4 parts égales. Si tu manges 3 parts, tu as mangé
       setStudentProgress(prev => ({
         ...prev,
         [`${subject}Score`]: Math.min(100, prev[`${subject}Score`] + 2),
-        totalExercices: prev.totalExercises + 1
+        totalExercises: prev.totalExercises + 1
       }));
     } else {
       setStudentProgress(prev => ({
@@ -452,12 +425,6 @@ Imagine une pizza coupée en 4 parts égales. Si tu manges 3 parts, tu as mangé
               )}
 
               <form onSubmit={handleChatSubmit} className="flex gap-2">
-                <input type="file" ref={fileInputRef} onChange={handleFileSelect} accept="image/*,.pdf" multiple className="hidden" />
-                
-                <button type="button" onClick={() => fileInputRef.current?.click()} className="bg-gray-100 hover:bg-gray-200 text-gray-700 p-3 rounded-xl transition-colors">
-                  <Paperclip size={20} />
-                </button>
-
                 <input
                   type="text"
                   value={chatInput}
@@ -466,10 +433,9 @@ Imagine une pizza coupée en 4 parts égales. Si tu manges 3 parts, tu as mangé
                   className="flex-1 border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-purple-500 transition-colors"
                   disabled={isChatLoading}
                 />
-
                 <button
                   type="submit"
-                  disabled={isChatLoading || (!chatInput.trim() && selectedFiles.length === 0)}
+                  disabled={isChatLoading || !chatInput.trim()}
                   className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 disabled:from-gray-300 disabled:to-gray-400 text-white px-6 py-3 rounded-xl transition-all transform hover:scale-105 disabled:scale-100"
                 >
                   <Send size={20} />
@@ -499,9 +465,19 @@ Imagine une pizza coupée en 4 parts égales. Si tu manges 3 parts, tu as mangé
                   <p className="text-gray-600">Ton assistant pédagogique personnalisé</p>
                 </div>
               </div>
-              <div className="flex items-center gap-2 bg-orange-100 px-4 py-2 rounded-lg">
-                <Star className="text-orange-500" size={20} />
-                <span className="font-semibold text-orange-700">{studentProgress.streak} jours de suite!</span>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 bg-orange-100 px-4 py-2 rounded-lg">
+                  <Star className="text-orange-500" size={20} />
+                  <span className="font-semibold text-orange-700">{studentProgress.streak} jours de suite!</span>
+                </div>
+                <button
+                  onClick={logout}
+                  title="Se déconnecter"
+                  className="flex items-center gap-2 bg-red-50 hover:bg-red-100 text-red-600 px-4 py-2 rounded-lg transition-colors"
+                >
+                  <LogOut size={18} />
+                  <span className="font-semibold text-sm hidden md:inline">Déconnexion</span>
+                </button>
               </div>
             </div>
           </div>

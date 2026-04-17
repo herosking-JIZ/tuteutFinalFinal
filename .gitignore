@@ -1,0 +1,21 @@
+# Environnement Python
+backend/venv/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/*.pyc
+backend/db.sqlite3
+
+# Variables d'environnement (contient mots de passe)
+backend/.env
+**/.env
+
+# Node
+test-tuteur/node_modules/
+test-tuteur/build/
+
+# Claude
+**/.claude/
+
+# OS
+.DS_Store
+Thumbs.db

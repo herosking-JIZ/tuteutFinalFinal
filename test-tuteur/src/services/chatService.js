@@ -1,53 +1,50 @@
-// frontend/src/services/chatService.js
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
 
 class ChatService {
   constructor() {
     this.conversationId = null;
   }
-  
-  async sendMessage(prompt, files = []) {
-    const formData = new FormData();
-    formData.append('prompt', prompt);
-    
-    // Ajouter fichiers
-    files.forEach(file => {
-      formData.append('files', file);
-    });
-    
-    // Ajouter conversation ID si existe
+
+  async sendMessage(message) {
+    const body = { message };
     if (this.conversationId) {
-      formData.append('conversation_id', this.conversationId);
+      body.conversation_id = this.conversationId;
     }
-    
-    try {
-      const response = await fetch(`${API_URL}/chat/`, {
-        method: 'POST',
-        body: formData,
-      });
-      
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Erreur serveur');
-      }
-      
-      const data = await response.json();
-      
-      // Sauvegarder conversation ID
-      if (data.conversation_id) {
-        this.conversationId = data.conversation_id;
-      }
-      
-      return data;
-      
-    } catch (error) {
-      console.error('Chat error:', error);
-      throw error;
+
+    const token = localStorage.getItem('access_token');
+    const response = await fetch(`${API_URL}/chat/message/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (response.status === 401) {
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+      window.location.href = '/login';
+      throw new Error('Session expirée, veuillez vous reconnecter.');
     }
-}
-    resetConversation() {
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || error.error || 'Erreur serveur');
+    }
+
+    const data = await response.json();
+
+    if (data.conversation_id) {
+      this.conversationId = data.conversation_id;
+    }
+
+    return data;
+  }
+
+  resetConversation() {
     this.conversationId = null;
-}
+  }
 }
 
 export default new ChatService();
