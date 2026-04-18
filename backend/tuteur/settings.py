@@ -131,7 +131,7 @@ CORS_ALLOW_CREDENTIALS = True
 
 # --- Gemini ---
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '')
-GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent'
+GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent'
 GEMINI_SYSTEM_PROMPT = (
     "Tu es un tuteur pédagogique bienveillant qui aide des élèves africains du primaire et secondaire. "
     "Tu expliques de façon simple, progressive et encourageante. "
