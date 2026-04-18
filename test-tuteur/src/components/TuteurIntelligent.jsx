@@ -4,7 +4,7 @@ import chatService from '../services/chatService';
 import { useAuth } from '../context/AuthContext';
 
 const TuteurIntelligent = () => {
-  const { logout, user } = useAuth();
+  const { logout } = useAuth();
   const [currentView, setCurrentView] = useState('home');
   const [selectedSubject, setSelectedSubject] = useState(null);
   const [selectedLevel, setSelectedLevel] = useState(null);
@@ -22,7 +22,6 @@ const TuteurIntelligent = () => {
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [isChatLoading, setIsChatLoading] = useState(false);
   const messagesEndRef = useRef(null);
-  const fileInputRef = useRef(null);
   
   const [studentProgress, setStudentProgress] = useState({
     mathsScore: 75,
@@ -156,7 +155,7 @@ Imagine une pizza coupée en 4 parts égales. Si tu manges 3 parts, tu as mangé
         timestamp: new Date()
       }]);
     }
-  }, [currentView]);
+  }, [currentView, chatMessages.length]);
 
   // Scroll automatique vers le dernier message
   useEffect(() => {
@@ -164,25 +163,6 @@ Imagine une pizza coupée en 4 parts égales. Si tu manges 3 parts, tu as mangé
   }, [chatMessages]);
 
   // Fonctions du Chat IA
-  const handleFileSelect = (e) => {
-    const files = Array.from(e.target.files);
-    const validFiles = files.filter(file => {
-      const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf'];
-      const maxSize = 10 * 1024 * 1024;
-      
-      if (!validTypes.includes(file.type)) {
-        alert(`${file.name} n'est pas supporté`);
-        return false;
-      }
-      if (file.size > maxSize) {
-        alert(`${file.name} est trop volumineux (max 10MB)`);
-        return false;
-      }
-      return true;
-    });
-    setSelectedFiles(prev => [...prev, ...validFiles]);
-  };
-
   const removeFile = (index) => {
     setSelectedFiles(prev => prev.filter((_, i) => i !== index));
   };
